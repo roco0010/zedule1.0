@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Usuarios: Lectura pública (para la página de reserva), escritura solo el dueño
+    match /users/{userId} {
+      allow get, list: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Citas: Cualquiera puede crear (público), solo el dueño puede leer/gestionar
+    match /appointments/{appointmentId} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+    
+    // Disponibilidad: Lectura pública, escritura solo el dueño
+    match /availability/{availabilityId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == (resource != null ? resource.data.userId : request.resource.data.userId);
+    }
+  }
+}
