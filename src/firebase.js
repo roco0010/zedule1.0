@@ -4,13 +4,13 @@ import { getFirestore } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyBe7dadFb0enEtVXrjJbp0KKaL4t5Hvgz4",
-    authDomain: "zedule-f4992.firebaseapp.com",
-    projectId: "zedule-f4992",
-    storageBucket: "zedule-f4992.firebasestorage.app",
-    messagingSenderId: "410591336505",
-    appId: "1:410591336505:web:6927743703b104307e95e8",
-    measurementId: "G-H1J12DQZP1"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase
