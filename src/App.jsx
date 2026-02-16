@@ -11,7 +11,7 @@ import Booking from './pages/Booking';
 function App() {
 
     useEffect(() => {
-        console.log("TEST ENV:", import.meta.env.VITE_API_KEY); // 👈 cambia el nombre si tu variable se llama distinto
+        console.log("TEST ENV:", import.meta.env.VITE_FIREBASE_API_KEY); // 👈 cambia el nombre si tu variable se llama distinto
     }, []);
 
     return (
