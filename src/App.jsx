@@ -1,3 +1,4 @@
+import { useEffect } from "react"; // 👈 agrega esto
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -8,6 +9,11 @@ import Dashboard from './pages/Dashboard';
 import Booking from './pages/Booking';
 
 function App() {
+
+    useEffect(() => {
+        console.log("TEST ENV:", import.meta.env.VITE_API_KEY); // 👈 cambia el nombre si tu variable se llama distinto
+    }, []);
+
     return (
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <div className="min-h-screen flex flex-col bg-slate-50">
