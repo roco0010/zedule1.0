@@ -1,37 +1,44 @@
-# =========================
-# Script PowerShell: Preparar repo para Netlify
-# =========================
+# ===============================
+# Script PowerShell para limpiar repo y preparar Netlify
+# ===============================
 
-# 1️⃣ Borra archivos con secretos del repo (sin eliminar local)
-git rm --cached .env, .env.local, .env.example, firebaseConfig.js -r -f
+# 1️⃣ Borra archivos con secretos del repo (sin eliminar tu copia local)
+$secretFiles = @(".env", ".env.local", ".env.example", "firebaseConfig.js")
 
-# 2️⃣ Asegura que .gitignore tenga las entradas correctas
-$gitignorePath = ".gitignore"
-$entries = @(".env", ".env.local", ".env.example", "firebaseConfig.js", "dist/", "node_modules/")
-
-foreach ($entry in $entries) {
-    if (-not (Select-String -Path $gitignorePath -Pattern [regex]::Escape($entry) -Quiet)) {
-        Add-Content $gitignorePath $entry
+foreach ($file in $secretFiles) {
+    if (Test-Path $file) {
+        git rm --cached $file -f
+        Write-Output "Removed $file from git index"
+    } else {
+        Write-Output "$file not found, skipping"
     }
 }
 
-# 3️⃣ Borra node_modules y dist
-Remove-Item -Recurse -Force node_modules
-Remove-Item -Recurse -Force dist
+# 2️⃣ Asegura que .gitignore tenga estas entradas
+$gitignorePath = ".gitignore"
+$ignoreEntries = @(".env", ".env.local", ".env.example", "firebaseConfig.js", "dist/", "node_modules/")
 
-# 4️⃣ Borra package-lock.json (opcional, para asegurar instalación limpia)
-Remove-Item -Force package-lock.json -ErrorAction SilentlyContinue
-
-# 5️⃣ Reinstala dependencias
-npm install
-
-# 6️⃣ Asegura que Vite sea ejecutable (para Linux/Netlify)
-if (Test-Path "node_modules/.bin/vite") {
-    icacls "node_modules\.bin\vite" /grant *S-1-1-0:(RX)
+foreach ($entry in $ignoreEntries) {
+    if (-not (Get-Content $gitignorePath | Select-String -SimpleMatch $entry)) {
+        Add-Content $gitignorePath $entry
+        Write-Output "Added $entry to .gitignore"
+    } else {
+        Write-Output "$entry already in .gitignore"
+    }
 }
 
-# 7️⃣ Commit de limpieza
-git add .
-git commit -m "Clean secrets, update .gitignore, reinstall dependencies for Netlify"
+# 3️⃣ Borra node_modules y dist (si existen)
+if (Test-Path "node_modules") { Remove-Item -Recurse -Force "node_modules"; Write-Output "Deleted node_modules" }
+if (Test-Path "dist") { Remove-Item -Recurse -Force "dist"; Write-Output "Deleted dist" }
 
+# 4️⃣ Borra package-lock.json (opcional para instalación limpia)
+if (Test-Path "package-lock.json") { Remove-Item -Force "package-lock.json"; Write-Output "Deleted package-lock.json" }
+
+# 5️⃣ Reinstala dependencias
+Write-Output "Installing npm dependencies..."
+npm install
+
+# 6️⃣ Commit de limpieza
+git add .
+git commit -m "Clean secrets, update .gitignore, reinstall dependencies for Netlify" -m "Ready for Netlify deploy"
 Write-Output "✅ Script completado. Ahora haz 'git push origin main' y dispara un nuevo deploy en Netlify."
