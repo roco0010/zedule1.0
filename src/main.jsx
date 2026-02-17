@@ -1,10 +1,8 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-- import PublicBooking from "./pages/PublicBooking";
 + import Booking from "./pages/Booking";
 
 const router = createBrowserRouter([
   { path: "/", element: <Home /> },
-  - { path: "/b/:slug", element: <PublicBooking /> },
 + { path: "/b/:slug", element: <Booking /> },
  // 👈 ESTA es clave
 ]);
