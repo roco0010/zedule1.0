@@ -1,11 +1,12 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import Dashboard from "./pages/Dashboard";
-import PublicBooking from "./pages/PublicBooking";
+- import PublicBooking from "./pages/PublicBooking";
++ import Booking from "./pages/Booking";
 
 const router = createBrowserRouter([
   { path: "/", element: <Home /> },
-  { path: "/dashboard", element: <Dashboard /> },
-  { path: "/b/:slug", element: <PublicBooking /> }, // 👈 ESTA es clave
+  - { path: "/b/:slug", element: <PublicBooking /> },
++ { path: "/b/:slug", element: <Booking /> },
+ // 👈 ESTA es clave
 ]);
 
 export default function App() {
