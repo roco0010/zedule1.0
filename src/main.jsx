@@ -1,20 +1,11 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import Home from "./pages/Home";
-import Dashboard from "./pages/Dashboard";
-import Booking from "./pages/Booking";
-import Login from "./pages/Login";
-import Onboarding from "./pages/Onboarding";
-import Register from "./pages/Register";
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App'
+import './index.css'
 
-const router = createBrowserRouter([
-  { path: "/", element: <Home /> },
-  { path: "/dashboard", element: <Dashboard /> },
-  { path: "/b/:slug", element: <Booking /> },
-  { path: "/login", element: <Login /> },
-  { path: "/onboarding", element: <Onboarding /> },
-  { path: "/register", element: <Register /> },
-]);
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+)
 
-export default function App() {
-  return <RouterProvider router={router} />;
-}
