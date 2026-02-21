@@ -1,4 +1,1 @@
-@"
-# Netlify SPA redirect
 /* /index.html 200
-"@ | Out-File -Encoding UTF8 _redirects

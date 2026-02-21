@@ -32,66 +32,73 @@ const Booking = () => {
 
     useEffect(() => {
         const fetchData = async () => {
-            console.log("Booking: Fetching data for", { userId, slug });
+            console.log("Booking: Starting fetch for", { userId, slug });
             setLoading(true);
             try {
                 let targetUserId = userId;
 
-                // Resolve slug to userId if necessary
-                if (slug) {
+                // 1. If we have a SLUG, we need to find who it belongs to
+                if (slug && !userId) {
                     const cleanedSlug = slug.toLowerCase().trim().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-                    console.log("Booking: Resolving slug", cleanedSlug);
-                    const slugQuery = query(collection(db, 'users'), where('slug', '==', cleanedSlug));
+                    console.log("Booking: Attempting to resolve slug:", cleanedSlug);
 
-                    try {
-                        const slugSnap = await getDocs(slugQuery);
-                        if (!slugSnap.empty) {
-                            targetUserId = slugSnap.docs[0].id;
-                            console.log("Booking: Resolved slug to userId", targetUserId);
+                    // First try: Search by 'slug' field
+                    const slugQuery = query(collection(db, 'users'), where('slug', '==', cleanedSlug));
+                    const slugSnap = await getDocs(slugQuery);
+
+                    if (!slugSnap.empty) {
+                        targetUserId = slugSnap.docs[0].id;
+                        console.log("Booking: Successfully resolved slug to userId:", targetUserId);
+                    } else {
+                        // Second try: Is it a direct UID? (Fallback)
+                        console.log("Booking: Slug not found in database, checking if id is a UID...");
+                        const potentialUserRef = doc(db, 'users', slug);
+                        const potentialUserSnap = await getDoc(potentialUserRef);
+
+                        if (potentialUserSnap.exists()) {
+                            targetUserId = slug;
+                            console.log("Booking: Resolved as direct UID:", targetUserId);
                         } else {
-                            console.error("Booking: Slug not found in Firestore:", cleanedSlug);
+                            console.error("Booking: Resolution failed. No user found for slug/id:", slug);
                             setLoading(false);
                             return;
                         }
-                    } catch (queryErr) {
-                        console.error("Booking: Firestore slug query error:", queryErr);
-                        setLoading(false);
-                        return;
                     }
                 }
 
+                // 2. Final verification: We MUST have a targetUserId at this point
                 if (!targetUserId) {
-                    console.warn("Booking: No targetUserId found (neither via direct ID nor slug)");
+                    console.warn("Booking: No targetUserId resolved.");
                     setLoading(false);
                     return;
                 }
 
                 setResolvedUserId(targetUserId);
 
-                // Fetch Owner Profile
-                console.log("Booking: Fetching owner profile for", targetUserId);
+                // 3. Fetch Data concurrently
+                console.log("Booking: Fetching full profile for:", targetUserId);
                 const ownerRef = doc(db, 'users', targetUserId);
-                const ownerSnap = await getDoc(ownerRef);
+                const [ownerSnap, availSnap, appSnap] = await Promise.all([
+                    getDoc(ownerRef),
+                    getDocs(query(collection(db, 'availability'), where('userId', '==', targetUserId))),
+                    getDocs(query(collection(db, 'appointments'), where('userId', '==', targetUserId)))
+                ]);
 
                 if (ownerSnap.exists()) {
-                    setOwner(ownerSnap.data());
-                    setServices(ownerSnap.data().services || []);
-                    console.log("Booking: Owner profile found", ownerSnap.data().businessName);
+                    const ownerData = ownerSnap.data();
+                    setOwner(ownerData);
+                    setServices(ownerData.services || []);
+                    console.log("Booking: Profile loaded for", ownerData.businessName || ownerData.name);
                 } else {
-                    console.error("Booking: Owner document does not exist for ID:", targetUserId);
+                    console.error("Booking: User document missing in Firestore for ID:", targetUserId);
+                    setLoading(false);
+                    return;
                 }
 
-                // Fetch Availability
-                const q = query(collection(db, 'availability'), where('userId', '==', targetUserId));
-                const availSnap = await getDocs(q);
+                // Availability
                 setAvailability(availSnap.docs.map(doc => doc.data()));
 
-                // Fetch Existing Appointments
-                const appQ = query(
-                    collection(db, 'appointments'),
-                    where('userId', '==', targetUserId)
-                );
-                const appSnap = await getDocs(appQ);
+                // Appointments
                 const apps = appSnap.docs
                     .map(doc => {
                         const data = doc.data();
@@ -109,7 +116,7 @@ const Booking = () => {
 
                 setLoading(false);
             } catch (err) {
-                console.error("Booking: General error fetching booking data:", err);
+                console.error("Booking: Error during data fetch:", err);
                 setLoading(false);
             }
         };

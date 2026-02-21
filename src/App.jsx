@@ -9,7 +9,7 @@ import Booking from './pages/Booking';
 
 function App() {
 
-  
+
     return (
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <div className="min-h-screen flex flex-col bg-slate-50">
@@ -23,6 +23,7 @@ function App() {
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/book/:userId" element={<Booking />} />
                         <Route path="/b/:slug" element={<Booking />} />
+                        <Route path="/:slug" element={<Booking />} />
                     </Routes>
                 </main>
                 <Footer />

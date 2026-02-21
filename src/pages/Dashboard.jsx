@@ -374,21 +374,12 @@ const Dashboard = () => {
                             variant="outline"
                             size="sm"
                             className="hidden sm:flex gap-2"
-                            onClick={() => window.open(slug ? `/b/${slug}` : `/book/${user.uid}`, '_blank')}
+                            onClick={() => window.open(slug ? `/${slug}` : `/book/${user.uid}`, '_blank')}
                         >
                             <ExternalLink size={16} />
                             View Public Page
                         </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="hidden sm:flex gap-2 text-slate-500"
-                            onClick={handleDemoData}
-                            isLoading={isGenerating}
-                        >
-                            <Sparkles size={16} />
-                            Generate Demo
-                        </Button>
+
                         <Button className="gap-2" onClick={() => setShowModal(true)}>
                             <Plus size={18} />
                             New Manual Entry
@@ -587,7 +578,7 @@ const Dashboard = () => {
                                         <label className="block text-sm font-bold text-slate-700 mb-2">Personalized Slug</label>
                                         <div className="flex items-center gap-2">
                                             <div className="bg-slate-100 px-4 py-3 rounded-xl border border-slate-200 text-slate-500 font-medium text-sm">
-                                                zedule.com/b/
+                                                zedule.com/
                                             </div>
                                             <input
                                                 type="text"
@@ -605,10 +596,10 @@ const Dashboard = () => {
                                         <div className="p-4 bg-primary/5 rounded-xl border border-primary/10 flex items-center justify-between">
                                             <div className="truncate pr-4">
                                                 <span className="text-xs font-bold text-primary/60 block uppercase mb-0.5">Your active link</span>
-                                                <code className="text-sm font-bold text-primary block truncate">zedule.com/b/{slug}</code>
+                                                <code className="text-sm font-bold text-primary block truncate">zedule.com/{slug}</code>
                                             </div>
                                             <button
-                                                onClick={() => window.open(`/b/${slug}`, '_blank')}
+                                                onClick={() => window.open(`/${slug}`, '_blank')}
                                                 className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-all"
                                             >
                                                 <ExternalLink size={18} />
