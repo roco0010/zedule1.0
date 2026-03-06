@@ -20,5 +20,12 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
+googleProvider.addScope('https://www.googleapis.com/auth/calendar.events');
+// Allow offline access to get refresh token if needed (optional for basic client-side)
+googleProvider.setCustomParameters({
+  access_type: 'offline',
+  prompt: 'consent'
+});
+
 
 export { auth, db, googleProvider };

@@ -40,6 +40,8 @@ const Login = () => {
         try {
             const result = await signInWithPopup(auth, googleProvider);
             const user = result.user;
+            const credential = GoogleAuthProvider.credentialFromResult(result);
+            const googleToken = credential?.accessToken;
 
             // Strict check: User must exist in Firestore
             const userRef = doc(db, 'users', user.uid);
@@ -51,7 +53,17 @@ const Login = () => {
                 return;
             }
 
+            // Update token if it's a Google user
+            if (googleToken) {
+                const { updateDoc, serverTimestamp } = await import('firebase/firestore');
+                await updateDoc(userRef, {
+                    googleToken: googleToken,
+                    googleLastSync: serverTimestamp()
+                });
+            }
+
             navigate('/dashboard');
+
         } catch (err) {
             setError('Google sign-in failed.');
             console.error(err);

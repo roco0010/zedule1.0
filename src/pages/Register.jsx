@@ -49,6 +49,8 @@ const Register = () => {
         try {
             const result = await signInWithPopup(auth, googleProvider);
             const user = result.user;
+            const credential = GoogleAuthProvider.credentialFromResult(result);
+            const googleToken = credential?.accessToken;
 
             // Check if user exists in Firestore, if not create
             await setDoc(doc(db, 'users', user.uid), {
@@ -56,9 +58,12 @@ const Register = () => {
                 name: user.displayName,
                 email: user.email,
                 photoURL: user.photoURL,
+                googleToken: googleToken || null,
+                googleLastSync: serverTimestamp(),
                 createdAt: serverTimestamp(),
                 isOnboarded: false
             }, { merge: true });
+
 
             navigate('/onboarding');
         } catch (err) {

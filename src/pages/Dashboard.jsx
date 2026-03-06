@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { auth, db } from '../firebase';
+import { auth, db, googleProvider } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import Calendar from '../components/Calendar';
@@ -175,7 +175,32 @@ const Dashboard = () => {
         setSchedule(newSchedule);
     };
 
+    const handleConnectGoogle = async () => {
+        setIsSaving(true);
+        try {
+            const { GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
+            const result = await signInWithPopup(auth, googleProvider);
+            const credential = GoogleAuthProvider.credentialFromResult(result);
+            const googleToken = credential?.accessToken;
+
+            if (googleToken) {
+                const userRef = doc(db, 'users', user.uid);
+                await updateDoc(userRef, {
+                    googleToken: googleToken,
+                    googleLastSync: serverTimestamp()
+                });
+                alert("Google Calendar connected successfully!");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Failed to connect Google Calendar.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const handleLogout = async () => {
+
         await auth.signOut();
         navigate('/login');
     };
@@ -200,11 +225,26 @@ const Dashboard = () => {
     const handleCreateManual = async (e) => {
         e.preventDefault();
         try {
-            await createAppointment({
+            const appData = {
                 userId: user.uid,
                 ...newApp,
-                startTime: new Date(newApp.startTime)
-            });
+                startTime: new Date(newApp.startTime),
+                status: 'booked',
+                createdAt: serverTimestamp()
+            };
+
+            await createAppointment(appData);
+
+            // Google Calendar Sync
+            const userRef = doc(db, 'users', user.uid);
+            const userSnap = await getDoc(userRef);
+            const userData = userSnap.data();
+
+            if (userData?.googleToken) {
+                const { createGoogleCalendarEvent } = await import('../utils/googleCalendar');
+                await createGoogleCalendarEvent(appData, userData.googleToken);
+            }
+
             setShowModal(false);
             setNewApp({ clientName: '', clientEmail: '', service: servicesState[0]?.name || 'Consultation', startTime: format(new Date(), "yyyy-MM-dd'T'HH:mm") });
         } catch (err) {
@@ -212,6 +252,7 @@ const Dashboard = () => {
             alert("Failed to create appointment.");
         }
     };
+
 
     const handleCancelAppointment = async (appId) => {
         if (!confirm("Are you sure you want to cancel this appointment?")) return;
@@ -567,7 +608,39 @@ const Dashboard = () => {
                                 </div>
                             </div>
 
+                            {/* Google Calendar Integration */}
+                            <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-xl overflow-hidden relative">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16" />
+                                <div className="relative z-10">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="bg-blue-50 p-2 rounded-xl text-blue-600">
+                                            <CalendarIcon size={24} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-bold text-slate-900">Google Calendar Sync</h3>
+                                            <p className="text-sm text-slate-500">Automatically push new appointments to your calendar</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                                        <Button
+                                            onClick={handleConnectGoogle}
+                                            variant="secondary"
+                                            className="w-full sm:w-auto flex items-center gap-2 border-2 border-slate-100"
+                                            isLoading={isSaving}
+                                        >
+                                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+                                            {appointments.some(a => a.googleToken) || true ? "Reconnect Google Calendar" : "Connect Google Calendar"}
+                                        </Button>
+                                        <p className="text-xs text-slate-400 max-w-xs">
+                                            Keep your tokens fresh to ensure every booking is synced without interruption.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Public Link Slug Settings */}
+
                             <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-xl">
                                 <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
                                     <ExternalLink size={20} className="text-primary" />

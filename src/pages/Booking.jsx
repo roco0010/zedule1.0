@@ -29,6 +29,8 @@ const Booking = () => {
     const [existingAppointments, setExistingAppointments] = useState([]);
     const [addressSuggestions, setAddressSuggestions] = useState([]);
     const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+    const [googleBusySlots, setGoogleBusySlots] = useState([]);
+
 
     useEffect(() => {
         const fetchData = async () => {
@@ -123,6 +125,24 @@ const Booking = () => {
         fetchData();
     }, [userId, slug]);
 
+    useEffect(() => {
+        const fetchGoogleAvailability = async () => {
+            if (!owner?.googleToken || !selectedDate) return;
+
+            try {
+                const { getGoogleBusySlots } = await import('../utils/googleCalendar');
+                const start = startOfDay(selectedDate);
+                const end = addDays(start, 1);
+                const busy = await getGoogleBusySlots(owner.googleToken, start, end);
+                setGoogleBusySlots(busy);
+            } catch (err) {
+                console.error("Error checking Google availability:", err);
+            }
+        };
+        fetchGoogleAvailability();
+    }, [selectedDate, owner?.googleToken]);
+
+
     const fetchAddressSuggestions = async (query) => {
         if (query.length < 3) {
             setAddressSuggestions([]);
@@ -167,16 +187,24 @@ const Booking = () => {
             const slotStart = new Date(current);
             const slotEnd = addMinutes(slotStart, selectedService.duration || 30);
 
-            // Check if slot overlaps with any existing appointment
-            const isOccupied = existingAppointments.some(app => {
+            // Check if slot overlaps with any existing appointment in Firestore
+            const isOccupiedFirestore = existingAppointments.some(app => {
                 return isBefore(slotStart, app.end) && isAfter(slotEnd, app.start);
             });
+
+            // Check if slot overlaps with any Google Calendar busy slot
+            const isOccupiedGoogle = googleBusySlots.some(busy => {
+                return isBefore(slotStart, busy.end) && isAfter(slotEnd, busy.start);
+            });
+
+            const isOccupied = isOccupiedFirestore || isOccupiedGoogle;
 
             if (!isOccupied && isAfter(current, new Date())) {
                 slots.push(new Date(current));
             }
             current = addMinutes(current, (selectedService.duration || 30) + buffer);
         }
+
 
         return slots;
     };
@@ -185,7 +213,7 @@ const Booking = () => {
         e.preventDefault();
         setBookingStatus('booking');
         try {
-            await addDoc(collection(db, 'appointments'), {
+            const appData = {
                 userId: resolvedUserId,
                 clientName: customerInfo.name,
                 clientEmail: customerInfo.email,
@@ -196,8 +224,18 @@ const Booking = () => {
                 duration: selectedService.duration,
                 status: 'booked',
                 createdAt: serverTimestamp()
-            });
+            };
+
+            const docRef = await addDoc(collection(db, 'appointments'), appData);
+
+            // Attempt to sync with Google Calendar if owner has a token
+            if (owner?.googleToken) {
+                const { createGoogleCalendarEvent } = await import('../utils/googleCalendar');
+                await createGoogleCalendarEvent(appData, owner.googleToken);
+            }
+
             setBookingStatus('success');
+
         } catch (err) {
             console.error("Booking Error:", err);
             alert("Failed to book appointment.");
