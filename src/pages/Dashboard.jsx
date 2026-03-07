@@ -40,6 +40,30 @@ const Dashboard = () => {
     const [bufferTime, setBufferTime] = useState(0);
     const [slug, setSlug] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [userTimezone, setUserTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
+
+    const COMMON_TIMEZONES = [
+        "America/Mexico_City",
+        "America/Bogota",
+        "America/Lima",
+        "America/Argentina/Buenos_Aires",
+        "America/Santiago",
+        "America/Caracas",
+        "America/New_York",
+        "America/Chicago",
+        "America/Denver",
+        "America/Los_Angeles",
+        "America/Sao_Paulo",
+        "Europe/Madrid",
+        "Europe/London",
+        "Europe/Paris",
+        "Europe/Berlin",
+        "Europe/Rome",
+        "Asia/Tokyo",
+        "Asia/Dubai",
+        "Asia/Singapore",
+        "Australia/Sydney"
+    ];
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (u) => {
@@ -95,6 +119,7 @@ const Dashboard = () => {
                         setServicesState(data.services || []);
                         setBufferTime(data.bufferTime || 0);
                         setSlug(data.slug || '');
+                        setUserTimezone(data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone);
                     }
                 });
 
@@ -123,7 +148,7 @@ const Dashboard = () => {
                 services: servicesState,
                 bufferTime: bufferTime,
                 slug: cleanedSlug,
-                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                timezone: userTimezone,
                 updatedAt: serverTimestamp()
             }, { merge: true });
 
@@ -616,11 +641,23 @@ const Dashboard = () => {
                                         </div>
                                     ))}
                                 </div>
-                                <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-                                    <div className="text-xs text-slate-400 font-medium bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
-                                        Timezone: <span className="text-slate-700 font-bold">{Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
+                                <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-6">
+                                    <div className="w-full sm:w-auto flex flex-col gap-1.5">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Timezone</label>
+                                        <select
+                                            className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 bg-slate-50 focus:bg-white focus:border-primary outline-none transition-all shadow-sm"
+                                            value={userTimezone}
+                                            onChange={(e) => setUserTimezone(e.target.value)}
+                                        >
+                                            {!COMMON_TIMEZONES.includes(userTimezone) && (
+                                                <option value={userTimezone}>{userTimezone} (Detected)</option>
+                                            )}
+                                            {COMMON_TIMEZONES.sort().map(tz => (
+                                                <option key={tz} value={tz}>{tz.replace('_', ' ')}</option>
+                                            ))}
+                                        </select>
                                     </div>
-                                    <Button onClick={handleSaveSettings} isLoading={isSaving} className="w-full sm:w-auto">Save All Settings</Button>
+                                    <Button onClick={handleSaveSettings} isLoading={isSaving} className="w-full sm:w-auto px-10">Save All Settings</Button>
                                 </div>
                             </div>
 

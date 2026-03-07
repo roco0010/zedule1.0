@@ -290,11 +290,24 @@ const Booking = () => {
                 <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xl w-full text-left space-y-3">
                     <div className="flex items-center gap-3 text-slate-700">
                         <CalendarIcon size={18} className="text-primary" />
-                        <span className="font-medium">{format(selectedTime, 'EEEE, MMMM do yyyy')}</span>
+                        <span className="font-medium">
+                            {new Intl.DateTimeFormat('en-US', {
+                                timeZone: owner?.timezone || 'UTC',
+                                weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+                            }).format(selectedTime)}
+                        </span>
                     </div>
                     <div className="flex items-center gap-3 text-slate-700">
                         <Clock size={18} className="text-primary" />
-                        <span className="font-medium">{format(selectedTime, 'HH:mm')} ({selectedService.duration} min)</span>
+                        <span className="font-medium">
+                            {new Intl.DateTimeFormat('en-US', {
+                                timeZone: owner?.timezone || 'UTC',
+                                hour: '2-digit', minute: '2-digit', hour12: false
+                            }).format(selectedTime)} ({selectedService.duration} min)
+                        </span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-medium pt-1 border-t border-slate-50">
+                        Timezone: <span className="font-bold">{owner?.timezone || 'UTC'}</span>
                     </div>
                 </div>
                 <p className="mt-10 text-slate-400 text-sm italic">You will receive an email confirmation shortly.</p>
@@ -388,12 +401,25 @@ const Booking = () => {
                                                     onClick={() => setSelectedTime(t)}
                                                     className="w-full py-3 px-4 rounded-xl border-2 border-slate-100 hover:border-primary hover:text-primary font-bold text-slate-700 transition-all text-sm"
                                                 >
-                                                    {format(t, 'HH:mm')}
+                                                    {new Intl.DateTimeFormat('en-US', {
+                                                        timeZone: owner?.timezone || 'UTC',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit',
+                                                        hour12: false
+                                                    }).format(t)}
                                                 </button>
                                             ))
                                         ) : (
                                             <p className="text-sm text-slate-400 italic">No slots available for this day.</p>
                                         )}
+                                    </div>
+                                    <div className="mt-6 p-3 bg-slate-50 rounded-xl border border-slate-100 text-center">
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Business Timezone</p>
+                                        <p className="text-xs font-black text-primary truncate">{owner?.timezone || 'Local'}</p>
+                                        <div className="mt-2 pt-2 border-t border-slate-200/60">
+                                            <p className="text-[9px] text-slate-400 font-medium">Your local time:</p>
+                                            <p className="text-[10px] font-bold text-slate-600">{Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -473,7 +499,22 @@ const Booking = () => {
                                         <p className="text-xs uppercase font-bold text-slate-400 tracking-widest mb-4">Summary</p>
                                         <h4 className="font-bold text-slate-800 text-lg mb-1">{selectedService.name}</h4>
                                         <p className="text-slate-500 text-sm">
-                                            {format(selectedTime, 'EEEE, MMMM do')} @ {format(selectedTime, 'HH:mm')}
+                                            {new Intl.DateTimeFormat('en-US', {
+                                                timeZone: owner?.timezone || 'UTC',
+                                                weekday: 'long',
+                                                month: 'long',
+                                                day: 'numeric'
+                                            }).format(selectedTime)}
+                                            {' @ '}
+                                            {new Intl.DateTimeFormat('en-US', {
+                                                timeZone: owner?.timezone || 'UTC',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                                hour12: false
+                                            }).format(selectedTime)}
+                                        </p>
+                                        <p className="text-[10px] text-slate-400 font-medium mt-1">
+                                            Timezone: <span className="font-bold">{owner?.timezone || 'UTC'}</span>
                                         </p>
                                     </div>
                                     <Button type="submit" size="lg" className="w-full py-4 text-lg shadow-xl" isLoading={bookingStatus === 'booking'}>
