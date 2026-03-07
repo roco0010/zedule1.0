@@ -77,12 +77,13 @@ export const getAIResponse = async (messages) => {
 
 export const saveUserOnboarding = async (userId, data) => {
     const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
+    await setDoc(userRef, {
         businessName: data.businessName,
         services: data.services,
         isOnboarded: true,
         updatedAt: serverTimestamp()
-    });
+    }, { merge: true });
+
 
     // Save availability
     for (const day of data.availability) {

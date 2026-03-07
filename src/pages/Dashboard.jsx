@@ -119,22 +119,25 @@ const Dashboard = () => {
             // Basic slug validation
             const cleanedSlug = slug.toLowerCase().trim().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
 
-            await updateDoc(userRef, {
+            await setDoc(userRef, {
                 services: servicesState,
                 bufferTime: bufferTime,
                 slug: cleanedSlug,
                 updatedAt: serverTimestamp()
-            });
+            }, { merge: true });
+
 
             // Update Availability Collection
             for (const day of schedule) {
                 if (day.id) {
                     const dayRef = doc(db, 'availability', day.id);
-                    await updateDoc(dayRef, {
+                    await setDoc(dayRef, {
                         startTime: day.startTime,
                         endTime: day.endTime,
-                        active: day.active ?? true
-                    });
+                        active: day.active ?? true,
+                        updatedAt: serverTimestamp()
+                    }, { merge: true });
+
                 } else if (day.active) {
                     await addDoc(collection(db, 'availability'), {
                         userId: user.uid,
@@ -258,10 +261,11 @@ const Dashboard = () => {
         if (!confirm("Are you sure you want to cancel this appointment?")) return;
         try {
             const appRef = doc(db, 'appointments', appId);
-            await updateDoc(appRef, {
+            await setDoc(appRef, {
                 status: 'cancelled',
                 updatedAt: serverTimestamp()
-            });
+            }, { merge: true });
+
             alert("Appointment cancelled successfully.");
         } catch (err) {
             console.error("Cancel Error:", err);

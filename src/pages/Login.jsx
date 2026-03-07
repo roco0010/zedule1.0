@@ -55,12 +55,13 @@ const Login = () => {
 
             // Update token if it's a Google user
             if (googleToken) {
-                const { updateDoc, serverTimestamp } = await import('firebase/firestore');
-                await updateDoc(userRef, {
+                const { setDoc, serverTimestamp } = await import('firebase/firestore');
+                await setDoc(userRef, {
                     googleToken: googleToken,
                     googleLastSync: serverTimestamp()
-                });
+                }, { merge: true });
             }
+
 
             if (userSnap.data()?.isOnboarded === false) {
                 navigate('/onboarding');
