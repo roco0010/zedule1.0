@@ -11,23 +11,42 @@ export const createGoogleCalendarEvent = async (appointment, ownerToken) => {
     const start = new Date(startTime.seconds ? startTime.seconds * 1000 : startTime);
     const end = new Date(start.getTime() + (duration || 30) * 60000);
 
+    // Format date specifically for Google (RFC3339 with offset)
+    const formatRFC3339 = (date) => {
+        const offset = -date.getTimezoneOffset();
+        const absOffset = Math.abs(offset);
+        const hours = Math.floor(absOffset / 60);
+        const minutes = absOffset % 60;
+        const sign = offset >= 0 ? '+' : '-';
+
+        // Use local time values but manually append the offset
+        const pad = (n) => n.toString().padStart(2, '0');
+        const year = date.getFullYear();
+        const month = pad(date.getMonth() + 1);
+        const day = pad(date.getDate());
+        const hh = pad(date.getHours());
+        const mm = pad(date.getMinutes());
+        const ss = pad(date.getSeconds());
+
+        return `${year}-${month}-${day}T${hh}:${mm}:${ss}${sign}${pad(hours)}:${pad(minutes)}`;
+    };
+
     const event = {
         summary: `${service}: ${clientName}`,
         location: clientAddress || 'Online Session',
         description: `Appointment booked via Zedule.\nCustomer: ${clientName} (${clientEmail})\nPhone: ${clientPhone || 'N/A'}\nAddress: ${clientAddress || 'N/A'}`,
         start: {
-            dateTime: start.toISOString(),
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            dateTime: formatRFC3339(start),
         },
         end: {
-            dateTime: end.toISOString(),
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            dateTime: formatRFC3339(end),
         },
         attendees: [],
         reminders: {
             useDefault: true
         }
     };
+
 
     // Only add attendee if the email is valid to avoid Google API errors
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
