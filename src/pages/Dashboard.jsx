@@ -188,10 +188,11 @@ const Dashboard = () => {
 
             if (googleToken) {
                 const userRef = doc(db, 'users', user.uid);
-                await updateDoc(userRef, {
+                await setDoc(userRef, {
                     googleToken: googleToken,
                     googleLastSync: serverTimestamp()
-                });
+                }, { merge: true });
+
                 alert("Google Calendar connected successfully!");
             }
         } catch (err) {
