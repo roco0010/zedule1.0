@@ -425,7 +425,7 @@ const Dashboard = () => {
                         </div>
                         <span className="font-bold text-xl">Zedule</span>
                     </div>
-                    <p className="text-slate-400 text-xs font-medium uppercase tracking-widest">Workspace v1.0</p>
+                    <p className="text-slate-400 text-xs font-medium uppercase tracking-widest">Workspace v3.1</p>
                 </div>
 
                 <nav className="flex-grow px-4 space-y-2">

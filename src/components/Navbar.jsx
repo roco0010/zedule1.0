@@ -27,8 +27,8 @@ const Navbar = () => {
                 <div className="bg-primary p-2 rounded-lg">
                     <Calendar className="text-white w-6 h-6" />
                 </div>
-                <span className="text-xl font-bold text-slate-900 tracking-tight">
-                    Zedule <span className="text-primary text-sm font-normal">v1.0</span>
+                <span className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                    Zedule <span className="text-primary text-sm font-normal">v3.1</span>
                 </span>
             </Link>
 

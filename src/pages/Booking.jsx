@@ -444,6 +444,17 @@ const Booking = () => {
                                     />
                                 </div>
                                 <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">Email Address</label>
+                                    <input
+                                        type="email"
+                                        required
+                                        className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all"
+                                        placeholder="john@example.com"
+                                        value={customerInfo.email}
+                                        onChange={e => setCustomerInfo({ ...customerInfo, email: e.target.value })}
+                                    />
+                                </div>
+                                <div>
                                     <label className="block text-sm font-bold text-slate-700 mb-1">Phone Number</label>
                                     <input
                                         type="tel"
@@ -525,8 +536,9 @@ const Booking = () => {
                 </div>
             </div>
 
-            <p className="text-center mt-12 text-slate-400 text-xs">
-                Zedule v1.0 • Easy Scheduling for Experts
+            <p className="text-center mt-12 text-slate-400 text-xs flex flex-col items-center gap-1">
+                <span>Zedule v3.1 • Easy Scheduling for Experts</span>
+                <span>Developed by <a href="https://www.startandgoarva.com" target="_blank" rel="noopener noreferrer" className="font-bold hover:text-primary transition-colors">Start&Go RVA</a></span>
             </p>
         </div>
     );
