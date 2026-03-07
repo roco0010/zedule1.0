@@ -8,41 +8,52 @@ export const createGoogleCalendarEvent = async (appointment, ownerToken) => {
     const { clientName, clientEmail, service, startTime, duration, clientAddress, clientPhone } = appointment;
 
     // Calculate end time
-    const start = new Date(startTime.seconds ? startTime.seconds * 1000 : startTime);
+    // Safe date parsing for Firestore Timestamps or JS Dates
+    const start = startTime?.seconds
+        ? new Date(startTime.seconds * 1000)
+        : (startTime instanceof Date ? startTime : new Date(startTime));
+
     const end = new Date(start.getTime() + (duration || 30) * 60000);
 
-    // Format date as local ISO string (YYYY-MM-DDTHH:mm:ss) 
-    // This is safer than toISOString() which always converts to UTC
-    const formatLocal = (date) => {
+    // Robust RFC3339 Formatter with hardcoded local offset
+    const formatWithOffset = (date) => {
         const pad = (n) => n.toString().padStart(2, '0');
+        const offset = -date.getTimezoneOffset();
+        const absOffset = Math.abs(offset);
+        const oz = pad(Math.floor(absOffset / 60));
+        const om = pad(absOffset % 60);
+        const sign = offset >= 0 ? '+' : '-';
+
         const yyyy = date.getFullYear();
         const mm = pad(date.getMonth() + 1);
         const dd = pad(date.getDate());
         const hh = pad(date.getHours());
         const min = pad(date.getMinutes());
         const ss = pad(date.getSeconds());
-        return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}`;
-    };
 
-    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}${sign}${oz}:${om}`;
+    };
 
     const event = {
         summary: `${service}: ${clientName}`,
         location: clientAddress || 'Online Session',
         description: `Appointment booked via Zedule.\nCustomer: ${clientName} (${clientEmail})\nPhone: ${clientPhone || 'N/A'}\nAddress: ${clientAddress || 'N/A'}`,
         start: {
-            dateTime: formatLocal(start),
-            timeZone: userTimeZone
+            dateTime: formatWithOffset(start)
         },
         end: {
-            dateTime: formatLocal(end),
-            timeZone: userTimeZone
+            dateTime: formatWithOffset(end)
         },
         attendees: [],
         reminders: {
             useDefault: true
         }
     };
+
+
+
+
+
 
 
 

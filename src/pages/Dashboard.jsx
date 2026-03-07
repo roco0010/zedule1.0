@@ -229,13 +229,20 @@ const Dashboard = () => {
     const handleCreateManual = async (e) => {
         e.preventDefault();
         try {
+            // Strict local parsing to avoid UTC shift
+            const [datePart, timePart] = newApp.startTime.split('T');
+            const [y, m, d] = datePart.split('-').map(Number);
+            const [hh, mm] = timePart.split(':').map(Number);
+            const localStart = new Date(y, m - 1, d, hh, mm);
+
             const appData = {
                 userId: user.uid,
                 ...newApp,
-                startTime: new Date(newApp.startTime),
+                startTime: localStart,
                 status: 'booked',
                 createdAt: serverTimestamp()
             };
+
 
             await createAppointment(appData);
 
