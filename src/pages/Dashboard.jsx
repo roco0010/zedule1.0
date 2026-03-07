@@ -355,6 +355,7 @@ const Dashboard = () => {
     }
 
     const upcomingAppointments = appointments.filter(app => parseDate(app.startTime) > new Date() && app.status !== 'cancelled');
+    const pastAppointments = appointments.filter(app => parseDate(app.startTime) <= new Date() || app.status === 'cancelled').sort((a, b) => parseDate(b.startTime) - parseDate(a.startTime));
 
     return (
         <div className="min-h-screen bg-slate-50 flex relative">
@@ -569,15 +570,45 @@ const Dashboard = () => {
                                         )}
                                     </div>
                                 </div>
-                                <div className="bg-gradient-to-br from-primary to-accent p-6 rounded-2xl text-white shadow-xl relative overflow-hidden group">
-                                    <div className="relative z-10">
-                                        <h4 className="font-bold text-lg mb-2">Zedule Premium</h4>
-                                        <p className="text-white/80 text-sm mb-4">Unlock advanced analytics and personalized notifications.</p>
-                                        <Button className="bg-white text-primary hover:bg-slate-50 w-full border-none shadow-none font-bold">
-                                            Upgrade Plan
-                                        </Button>
+                                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[400px]">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="font-bold text-slate-900">Appointment History</h3>
+                                        <div className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-md">{pastAppointments.length}</div>
                                     </div>
-                                    <Sparkles className="absolute -bottom-4 -right-4 w-24 h-24 text-white/10 group-hover:rotate-12 transition-transform duration-500" />
+                                    <div className="flex-grow overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                                        {pastAppointments.length > 0 ? (
+                                            pastAppointments.map(app => (
+                                                <div key={app.id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl relative overflow-hidden flex flex-col gap-2 relative">
+                                                    {app.status === 'cancelled' && (
+                                                        <div className="absolute top-0 right-0 w-16 h-16 pointer-events-none">
+                                                            <div className="absolute transform rotate-45 bg-red-500 text-white font-bold text-[8px] tracking-wider py-1 right-[-35px] top-[15px] w-[130px] text-center shadow-sm">
+                                                                CANCELLED
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    <div className="flex justify-between items-start">
+                                                        <div>
+                                                            <h4 className="font-bold text-slate-900 text-sm leading-none">{app.clientName}</h4>
+                                                            <p className="text-xs text-slate-500 font-medium mt-1">{app.service}</p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="font-bold text-slate-900 text-sm">
+                                                                {format(parseDate(app.startTime), 'h:mm a')}
+                                                            </p>
+                                                            <p className="text-[10px] text-slate-400 font-medium">
+                                                                {format(parseDate(app.startTime), 'MMM d, yyyy')}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="py-12 text-center text-slate-400">
+                                                <Clock size={40} className="mx-auto mb-3 opacity-20" />
+                                                <p className="text-sm">No past appointments</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
