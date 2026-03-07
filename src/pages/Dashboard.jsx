@@ -255,11 +255,30 @@ const Dashboard = () => {
     const handleCreateManual = async (e) => {
         e.preventDefault();
         try {
-            // Strict local parsing to avoid UTC shift
-            const [datePart, timePart] = newApp.startTime.split('T');
-            const [y, m, d] = datePart.split('-').map(Number);
-            const [hh, mm] = timePart.split(':').map(Number);
-            const localStart = new Date(y, m - 1, d, hh, mm);
+            // The datetime-local input gives us a wall-clock string like "2024-03-07T09:00"
+            // We must treat it as being in the owner's Business Timezone, NOT the browser's local timezone.
+            // Strategy: append ":00" and use the timezone trick via Intl to find the correct UTC ms.
+            const wallClockStr = newApp.startTime; // e.g. "2024-03-07T09:00"
+            const ownerTz = userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+            // Parse the wall-clock time in the owner's timezone by using a UTC-formatted
+            // version and subtracting the owner's UTC offset at that moment.
+            // We use the trick: find what UTC time corresponds to "wallClockStr in ownerTz"
+            const [datePart, timePart] = wallClockStr.split('T');
+            const [y, mo, d] = datePart.split('-').map(Number);
+            const [hh, mm] = (timePart || '00:00').split(':').map(Number);
+
+            // Create a "naive" date first assuming UTC, then figure out the real offset
+            const naiveUTC = new Date(Date.UTC(y, mo - 1, d, hh, mm, 0));
+
+            // Get what the owner's clock shows for naiveUTC
+            const ownerClockStr = naiveUTC.toLocaleString('en-US', { timeZone: ownerTz, hour12: false });
+            const ownerClock = new Date(ownerClockStr);
+
+            // The difference tells us the offset of the owner's tz at this moment
+            const offsetMs = naiveUTC - ownerClock;
+            // Adjust: the real UTC millisecond for "hh:mm in ownerTz" is naiveUTC + offsetMs
+            const localStart = new Date(naiveUTC.getTime() + offsetMs);
 
             const appData = {
                 userId: user.uid,
@@ -268,7 +287,6 @@ const Dashboard = () => {
                 status: 'booked',
                 createdAt: serverTimestamp()
             };
-
 
             await createAppointment(appData);
 

@@ -1,30 +1,75 @@
 /**
  * Utility to sync appointments with Google Calendar
+ *
+ * KEY RULE (Google Calendar API):
+ * When sending { dateTime, timeZone }, the dateTime MUST be a "wall clock"
+ * local time string with NO 'Z' and NO offset suffix — e.g. "2024-03-07T09:00:00"
+ *
+ * If dateTime ends in 'Z' (from toISOString()), Google interprets it as UTC
+ * and completely ignores the timeZone field, causing the hours shift bug.
  */
 
+/**
+ * Converts a JS Date (UTC internally) to a wall-clock datetime string
+ * as it would appear on a clock in the given IANA timezone.
+ * Output format: "YYYY-MM-DDTHH:mm:ss" — NO 'Z', NO offset
+ */
+const toWallClockString = (date, timeZone) => {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+    }).formatToParts(date);
+
+    const get = (type) => parts.find(p => p.type === type)?.value ?? '00';
+
+    // en-CA locale can return '24' for midnight with hour12:false — normalize it
+    const hour = get('hour') === '24' ? '00' : get('hour');
+
+    return `${get('year')}-${get('month')}-${get('day')}T${hour}:${get('minute')}:${get('second')}`;
+};
+
+/**
+ * Creates a Google Calendar event for the given appointment.
+ * @param {object} appointment - The appointment data from Firestore/Booking
+ * @param {string} ownerToken  - The owner's Google OAuth access token
+ * @param {string} ownerTimezone - IANA timezone string e.g. "America/New_York"
+ */
 export const createGoogleCalendarEvent = async (appointment, ownerToken, ownerTimezone = null) => {
     if (!ownerToken) return null;
 
     const { clientName, clientEmail, service, startTime, duration, clientAddress, clientPhone } = appointment;
+    const tz = ownerTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-    // Calculate end time
-    const start = startTime?.seconds
+    // Resolve startTime — handles Firestore Timestamps, JS Date objects, and ISO strings
+    const startDate = startTime?.seconds
         ? new Date(startTime.seconds * 1000)
         : (startTime instanceof Date ? startTime : new Date(startTime));
 
-    const end = new Date(start.getTime() + (duration || 30) * 60000);
+    const endDate = new Date(startDate.getTime() + (duration || 30) * 60000);
+
+    // Convert to wall-clock strings in the owner's timezone — NO 'Z', NO offset
+    const startWall = toWallClockString(startDate, tz);
+    const endWall = toWallClockString(endDate, tz);
+
+    console.log(`[GCal] Event | tz="${tz}" | start="${startWall}" | end="${endWall}"`);
 
     const event = {
         summary: `${service}: ${clientName}`,
         location: clientAddress || 'Online Session',
         description: `Appointment booked via Zedule.\nCustomer: ${clientName} (${clientEmail})\nPhone: ${clientPhone || 'N/A'}\nAddress: ${clientAddress || 'N/A'}`,
         start: {
-            dateTime: start.toISOString(),
-            timeZone: ownerTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone
+            dateTime: startWall,  // ✅ Wall-clock string, no Z
+            timeZone: tz           // ✅ Google uses this to interpret the wall-clock string
         },
         end: {
-            dateTime: end.toISOString(),
-            timeZone: ownerTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone
+            dateTime: endWall,    // ✅ Same format
+            timeZone: tz
         },
         attendees: [],
         reminders: {
@@ -32,22 +77,14 @@ export const createGoogleCalendarEvent = async (appointment, ownerToken, ownerTi
         }
     };
 
-
-
-
-
-
-
-
-
-    // Only add attendee if the email is valid to avoid Google API errors
+    // Only add attendee if email is valid — invalid emails cause Google API errors
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (clientEmail && emailRegex.test(clientEmail)) {
         event.attendees.push({ email: clientEmail });
     }
 
     try {
-        console.log('Attempting to create Google Calendar event with token:', ownerToken.substring(0, 5) + '...');
+        console.log('[GCal] Sending event payload:', JSON.stringify(event.start));
         const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all', {
             method: 'POST',
             headers: {
@@ -59,9 +96,9 @@ export const createGoogleCalendarEvent = async (appointment, ownerToken, ownerTi
 
         if (!response.ok) {
             const error = await response.json();
-            console.error('Google Calendar API Error Details:', error);
+            console.error('[GCal] API Error:', error);
             if (error.error?.status === 'PERMISSION_DENIED') {
-                alert("Google Calendar: Permission Denied. Check if the 'Google Calendar API' is enabled in your Google Cloud Console.");
+                alert("Google Calendar: Permission Denied. Make sure the 'Google Calendar API' is enabled in Google Cloud Console.");
             } else if (error.error?.code === 401) {
                 alert("Google Calendar: Session expired. Please reconnect Google Calendar in your settings.");
             } else {
@@ -71,17 +108,18 @@ export const createGoogleCalendarEvent = async (appointment, ownerToken, ownerTi
         }
 
         const data = await response.json();
-        console.log('Google Calendar event created successfully:', data.htmlLink);
+        console.log('[GCal] Event created successfully:', data.htmlLink);
         return data;
     } catch (err) {
-        console.error('Failed to create Google Calendar event (Network Error):', err);
+        console.error('[GCal] Network error:', err);
         alert("Network error connecting to Google Calendar API.");
         return null;
     }
 };
 
 /**
- * Fetch busy slots from Google Calendar to prevent overlaps
+ * Fetch busy time slots from Google Calendar (FreeBusy API).
+ * Returns UTC-based Date objects which are timezone-agnostic for overlap detection.
  */
 export const getGoogleBusySlots = async (ownerToken, timeMin, timeMax) => {
     if (!ownerToken) return [];
@@ -94,26 +132,24 @@ export const getGoogleBusySlots = async (ownerToken, timeMin, timeMax) => {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                timeMin: timeMin.toISOString(),
+                timeMin: timeMin.toISOString(),  // FreeBusy API correctly accepts ISO/UTC
                 timeMax: timeMax.toISOString(),
                 items: [{ id: 'primary' }]
             })
         });
 
         if (!response.ok) {
-            console.error('Failed to fetch Google FreeBusy data');
+            console.error('[GCal] Failed to fetch FreeBusy data');
             return [];
         }
 
         const data = await response.json();
-        const busy = data.calendars.primary.busy.map(slot => ({
+        return data.calendars.primary.busy.map(slot => ({
             start: new Date(slot.start),
             end: new Date(slot.end)
         }));
-
-        return busy;
     } catch (err) {
-        console.error('Error fetching Google FreeBusy:', err);
+        console.error('[GCal] Error fetching FreeBusy:', err);
         return [];
     }
 };
