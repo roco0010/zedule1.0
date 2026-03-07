@@ -147,7 +147,7 @@ export const getGoogleBusySlots = async (ownerToken, timeMin, timeMax) => {
         });
 
         if (!response.ok) {
-            console.error('[GCal] Failed to fetch FreeBusy data');
+            console.warn('[GCal] FreeBusy failed, proceeding anyway');
             return [];
         }
 
@@ -157,7 +157,7 @@ export const getGoogleBusySlots = async (ownerToken, timeMin, timeMax) => {
             end: new Date(slot.end)
         }));
     } catch (err) {
-        console.error('[GCal] Error fetching FreeBusy:', err);
+        console.warn('[GCal] FreeBusy failed, proceeding anyway');
         return [];
     }
 };
