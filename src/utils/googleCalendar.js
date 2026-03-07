@@ -11,41 +11,40 @@ export const createGoogleCalendarEvent = async (appointment, ownerToken) => {
     const start = new Date(startTime.seconds ? startTime.seconds * 1000 : startTime);
     const end = new Date(start.getTime() + (duration || 30) * 60000);
 
-    // Format date specifically for Google (RFC3339 with offset)
-    const formatRFC3339 = (date) => {
-        const offset = -date.getTimezoneOffset();
-        const absOffset = Math.abs(offset);
-        const hours = Math.floor(absOffset / 60);
-        const minutes = absOffset % 60;
-        const sign = offset >= 0 ? '+' : '-';
-
-        // Use local time values but manually append the offset
+    // Format date as local ISO string (YYYY-MM-DDTHH:mm:ss) 
+    // This is safer than toISOString() which always converts to UTC
+    const formatLocal = (date) => {
         const pad = (n) => n.toString().padStart(2, '0');
-        const year = date.getFullYear();
-        const month = pad(date.getMonth() + 1);
-        const day = pad(date.getDate());
+        const yyyy = date.getFullYear();
+        const mm = pad(date.getMonth() + 1);
+        const dd = pad(date.getDate());
         const hh = pad(date.getHours());
-        const mm = pad(date.getMinutes());
+        const min = pad(date.getMinutes());
         const ss = pad(date.getSeconds());
-
-        return `${year}-${month}-${day}T${hh}:${mm}:${ss}${sign}${pad(hours)}:${pad(minutes)}`;
+        return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}`;
     };
+
+    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     const event = {
         summary: `${service}: ${clientName}`,
         location: clientAddress || 'Online Session',
         description: `Appointment booked via Zedule.\nCustomer: ${clientName} (${clientEmail})\nPhone: ${clientPhone || 'N/A'}\nAddress: ${clientAddress || 'N/A'}`,
         start: {
-            dateTime: formatRFC3339(start),
+            dateTime: formatLocal(start),
+            timeZone: userTimeZone
         },
         end: {
-            dateTime: formatRFC3339(end),
+            dateTime: formatLocal(end),
+            timeZone: userTimeZone
         },
         attendees: [],
         reminders: {
             useDefault: true
         }
     };
+
+
 
 
     // Only add attendee if the email is valid to avoid Google API errors
