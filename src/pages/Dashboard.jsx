@@ -271,14 +271,13 @@ const Dashboard = () => {
             // Create a "naive" date first assuming UTC, then figure out the real offset
             const naiveUTC = new Date(Date.UTC(y, mo - 1, d, hh, mm, 0));
 
-            // Get what the owner's clock shows for naiveUTC
-            const ownerClockStr = naiveUTC.toLocaleString('en-US', { timeZone: ownerTz, hour12: false });
-            const ownerClock = new Date(ownerClockStr);
-
-            // The difference tells us the offset of the owner's tz at this moment
-            const offsetMs = naiveUTC - ownerClock;
-            // Adjust: the real UTC millisecond for "hh:mm in ownerTz" is naiveUTC + offsetMs
-            const localStart = new Date(naiveUTC.getTime() + offsetMs);
+            // KEY FIX: compare owner-tz string vs UTC string — both parsed as browser local,
+            // so the browser-local parsing error cancels out in the subtraction.
+            const utcStr = naiveUTC.toLocaleString('en-US', { timeZone: 'UTC', hour12: false });
+            const ownerStr = naiveUTC.toLocaleString('en-US', { timeZone: ownerTz, hour12: false });
+            const ownerOffsetMs = new Date(ownerStr) - new Date(utcStr);
+            // true UTC for "hh:mm in ownerTz" = naiveUTC - ownerOffsetMs
+            const localStart = new Date(naiveUTC.getTime() - ownerOffsetMs);
 
             const appData = {
                 userId: user.uid,

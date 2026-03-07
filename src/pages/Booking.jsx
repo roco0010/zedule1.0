@@ -168,56 +168,41 @@ const Booking = () => {
 
         if (!dayAvail) return [];
 
-        // --- TIMEZONE LOGIC ---
-        // 1. Get Owner's offset in minutes (e.g. NYC = -300)
-        const getOwnerOffset = (tz) => {
-            try {
-                const now = new Date();
-                const ownerString = now.toLocaleString('en-US', { timeZone: tz });
-                const localString = now.toLocaleString('en-US', { timeZone: 'UTC' });
-                const diff = (new Date(ownerString) - new Date(localString)) / 60000;
-                return diff;
-            } catch (e) {
-                return -new Date().getTimezoneOffset();
-            }
-        };
-
         const ownerTz = owner.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const ownerOffset = getOwnerOffset(ownerTz);
-        const customerOffset = -new Date().getTimezoneOffset();
-        const diffMinutes = customerOffset - ownerOffset; // How many minutes to add to owner's time to get customer's time
-        // ----------------------
+
+        /**
+         * Convert "HH:mm" on a given date in ownerTz → correct UTC Date.
+         * Uses two-locale-string technique so result is independent of browser tz.
+         */
+        const wallClockToDate = (baseDate, timeStr) => {
+            const dateStr = format(baseDate, 'yyyy-MM-dd');
+            const [hh, mm] = timeStr.split(':').map(Number);
+            const [y, mo, d] = dateStr.split('-').map(Number);
+            const naiveUTC = new Date(Date.UTC(y, mo - 1, d, hh, mm, 0));
+            const utcStr = naiveUTC.toLocaleString('en-US', { timeZone: 'UTC', hour12: false });
+            const ownerStr = naiveUTC.toLocaleString('en-US', { timeZone: ownerTz, hour12: false });
+            const ownerOffsetMs = new Date(ownerStr) - new Date(utcStr);
+            return new Date(naiveUTC.getTime() - ownerOffsetMs);
+        };
 
         const slots = [];
         const buffer = owner.bufferTime || 0;
 
-        // Parse owner's local hours
-        const [startH, startM] = dayAvail.startTime.split(':').map(Number);
-        const [endH, endM] = dayAvail.endTime.split(':').map(Number);
-
-        // Create base dates in customer's timezone that EQUAL owner's local hours
-        let current = set(selectedDate, { hours: startH, minutes: startM, seconds: 0, milliseconds: 0 });
-        let end = set(selectedDate, { hours: endH, minutes: endM, seconds: 0, milliseconds: 0 });
-
-        // Shift them by the difference so they match the owner's actual point in time
-        current = addMinutes(current, diffMinutes);
-        end = addMinutes(end, diffMinutes);
+        let current = wallClockToDate(selectedDate, dayAvail.startTime);
+        const end = wallClockToDate(selectedDate, dayAvail.endTime);
 
         while (isBefore(current, end)) {
             const slotStart = new Date(current);
             const slotEnd = addMinutes(slotStart, selectedService.duration || 30);
 
-            const isOccupiedFirestore = existingAppointments.some(app => {
-                return isBefore(slotStart, app.end) && isAfter(slotEnd, app.start);
-            });
+            const isOccupiedFirestore = existingAppointments.some(app =>
+                isBefore(slotStart, app.end) && isAfter(slotEnd, app.start)
+            );
+            const isOccupiedGoogle = googleBusySlots.some(busy =>
+                isBefore(slotStart, busy.end) && isAfter(slotEnd, busy.start)
+            );
 
-            const isOccupiedGoogle = googleBusySlots.some(busy => {
-                return isBefore(slotStart, busy.end) && isAfter(slotEnd, busy.start);
-            });
-
-            const isOccupied = isOccupiedFirestore || isOccupiedGoogle;
-
-            if (!isOccupied && isAfter(current, new Date())) {
+            if (!isOccupiedFirestore && !isOccupiedGoogle && isAfter(current, new Date())) {
                 slots.push(new Date(current));
             }
             current = addMinutes(current, (selectedService.duration || 30) + buffer);
