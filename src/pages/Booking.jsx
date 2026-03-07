@@ -228,6 +228,11 @@ const Booking = () => {
 
     const handleBooking = async (e) => {
         e.preventDefault();
+
+        // ── Guard: prevent double-submit ──────────────────────────────────────
+        if (bookingStatus === 'booking') return;
+        // ─────────────────────────────────────────────────────────────────────
+
         setBookingStatus('booking');
         try {
             const appData = {
@@ -248,7 +253,15 @@ const Booking = () => {
             // Attempt to sync with Google Calendar if owner has a token
             if (owner?.googleToken) {
                 const { createGoogleCalendarEvent } = await import('../utils/googleCalendar');
-                await createGoogleCalendarEvent(appData, owner.googleToken, owner.timezone);
+                const gcalResult = await createGoogleCalendarEvent(appData, owner.googleToken, owner.timezone);
+
+                // ── Save googleEventId so future cancellations can delete it ──
+                if (gcalResult?.id) {
+                    const { updateDoc } = await import('firebase/firestore');
+                    await updateDoc(docRef, { googleEventId: gcalResult.id });
+                    console.log('[Booking] Saved googleEventId:', gcalResult.id);
+                }
+                // ─────────────────────────────────────────────────────────────
             }
 
             setBookingStatus('success');

@@ -153,3 +153,36 @@ export const getGoogleBusySlots = async (ownerToken, timeMin, timeMax) => {
         return [];
     }
 };
+
+/**
+ * Deletes a Google Calendar event by its stored event ID.
+ * Returns true on success or if already deleted (404). Non-blocking on failure.
+ * @param {string} ownerToken    - The owner's Google OAuth access token
+ * @param {string} googleEventId - The event ID saved in Firestore when created
+ */
+export const deleteGoogleCalendarEvent = async (ownerToken, googleEventId) => {
+    if (!ownerToken || !googleEventId) return false;
+
+    try {
+        const response = await fetch(
+            `https://www.googleapis.com/calendar/v3/calendars/primary/events/${googleEventId}`,
+            {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${ownerToken}` }
+            }
+        );
+
+        // 204 No Content = deleted. 404 = already gone. Both are acceptable.
+        if (response.status === 204 || response.status === 404) {
+            console.log(`[GCal] Event "${googleEventId}" removed from Google Calendar.`);
+            return true;
+        }
+
+        const error = await response.json().catch(() => ({}));
+        console.error('[GCal] Failed to delete event:', error);
+        return false;
+    } catch (err) {
+        console.error('[GCal] Network error deleting event:', err);
+        return false;
+    }
+};

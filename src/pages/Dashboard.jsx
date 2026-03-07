@@ -288,7 +288,7 @@ const Dashboard = () => {
                 createdAt: serverTimestamp()
             };
 
-            await createAppointment(appData);
+            const newAppRef = await createAppointment(appData);
 
             // Google Calendar Sync
             const userRef = doc(db, 'users', user.uid);
@@ -297,7 +297,14 @@ const Dashboard = () => {
 
             if (userData?.googleToken) {
                 const { createGoogleCalendarEvent } = await import('../utils/googleCalendar');
-                await createGoogleCalendarEvent(appData, userData.googleToken, userData.timezone);
+                const gcalResult = await createGoogleCalendarEvent(appData, userData.googleToken, userData.timezone);
+
+                // Save googleEventId so cancellations can sync with Google Calendar
+                if (gcalResult?.id && newAppRef?.id) {
+                    const appRef = doc(db, 'appointments', newAppRef.id);
+                    await setDoc(appRef, { googleEventId: gcalResult.id }, { merge: true });
+                    console.log('[Dashboard] Saved googleEventId:', gcalResult.id);
+                }
             }
 
             setShowModal(false);
@@ -313,6 +320,21 @@ const Dashboard = () => {
         if (!confirm("Are you sure you want to cancel this appointment?")) return;
         try {
             const appRef = doc(db, 'appointments', appId);
+
+            // ── Try to delete from Google Calendar if we have the event ID ────
+            const appSnap = await getDoc(appRef);
+            const appData = appSnap.data();
+            if (appData?.googleEventId) {
+                const userRef = doc(db, 'users', user.uid);
+                const userSnap = await getDoc(userRef);
+                const ownerToken = userSnap.data()?.googleToken;
+                if (ownerToken) {
+                    const { deleteGoogleCalendarEvent } = await import('../utils/googleCalendar');
+                    await deleteGoogleCalendarEvent(ownerToken, appData.googleEventId);
+                }
+            }
+            // ─────────────────────────────────────────────────────────────────
+
             await setDoc(appRef, {
                 status: 'cancelled',
                 updatedAt: serverTimestamp()
