@@ -2,47 +2,29 @@
  * Utility to sync appointments with Google Calendar
  */
 
-export const createGoogleCalendarEvent = async (appointment, ownerToken) => {
+export const createGoogleCalendarEvent = async (appointment, ownerToken, ownerTimezone = null) => {
     if (!ownerToken) return null;
 
     const { clientName, clientEmail, service, startTime, duration, clientAddress, clientPhone } = appointment;
 
     // Calculate end time
-    // Safe date parsing for Firestore Timestamps or JS Dates
     const start = startTime?.seconds
         ? new Date(startTime.seconds * 1000)
         : (startTime instanceof Date ? startTime : new Date(startTime));
 
     const end = new Date(start.getTime() + (duration || 30) * 60000);
 
-    // Robust RFC3339 Formatter with hardcoded local offset
-    const formatWithOffset = (date) => {
-        const pad = (n) => n.toString().padStart(2, '0');
-        const offset = -date.getTimezoneOffset();
-        const absOffset = Math.abs(offset);
-        const oz = pad(Math.floor(absOffset / 60));
-        const om = pad(absOffset % 60);
-        const sign = offset >= 0 ? '+' : '-';
-
-        const yyyy = date.getFullYear();
-        const mm = pad(date.getMonth() + 1);
-        const dd = pad(date.getDate());
-        const hh = pad(date.getHours());
-        const min = pad(date.getMinutes());
-        const ss = pad(date.getSeconds());
-
-        return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}${sign}${oz}:${om}`;
-    };
-
     const event = {
         summary: `${service}: ${clientName}`,
         location: clientAddress || 'Online Session',
         description: `Appointment booked via Zedule.\nCustomer: ${clientName} (${clientEmail})\nPhone: ${clientPhone || 'N/A'}\nAddress: ${clientAddress || 'N/A'}`,
         start: {
-            dateTime: formatWithOffset(start)
+            dateTime: start.toISOString(),
+            timeZone: ownerTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone
         },
         end: {
-            dateTime: formatWithOffset(end)
+            dateTime: end.toISOString(),
+            timeZone: ownerTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone
         },
         attendees: [],
         reminders: {

@@ -80,6 +80,7 @@ export const saveUserOnboarding = async (userId, data) => {
     await setDoc(userRef, {
         businessName: data.businessName,
         services: data.services,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         isOnboarded: true,
         updatedAt: serverTimestamp()
     }, { merge: true });

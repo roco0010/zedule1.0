@@ -31,6 +31,7 @@ const Register = () => {
                 name: name,
                 email: email,
                 photoURL: '',
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                 createdAt: serverTimestamp(),
                 isOnboarded: false
             });
@@ -61,6 +62,7 @@ const Register = () => {
                 photoURL: user.photoURL,
                 googleToken: googleToken || null,
                 googleLastSync: serverTimestamp(),
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                 createdAt: serverTimestamp(),
                 isOnboarded: false
             }, { merge: true });

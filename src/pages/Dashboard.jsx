@@ -123,6 +123,7 @@ const Dashboard = () => {
                 services: servicesState,
                 bufferTime: bufferTime,
                 slug: cleanedSlug,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                 updatedAt: serverTimestamp()
             }, { merge: true });
 
@@ -253,7 +254,7 @@ const Dashboard = () => {
 
             if (userData?.googleToken) {
                 const { createGoogleCalendarEvent } = await import('../utils/googleCalendar');
-                await createGoogleCalendarEvent(appData, userData.googleToken);
+                await createGoogleCalendarEvent(appData, userData.googleToken, userData.timezone);
             }
 
             setShowModal(false);
@@ -599,15 +600,15 @@ const Dashboard = () => {
                                                 <input
                                                     type="time"
                                                     disabled={!day.active}
-                                                    className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 focus:border-primary outline-none disabled:bg-transparent"
+                                                    className="px-3 py-1.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 bg-slate-50 focus:bg-white focus:border-primary outline-none transition-all"
                                                     value={day.startTime || '09:00'}
                                                     onChange={(e) => updateScheduleDay(idx, 'startTime', e.target.value)}
                                                 />
-                                                <span className="text-slate-300">—</span>
+                                                <span className="text-slate-300 font-bold">—</span>
                                                 <input
                                                     type="time"
                                                     disabled={!day.active}
-                                                    className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 focus:border-primary outline-none disabled:bg-transparent"
+                                                    className="px-3 py-1.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 bg-slate-50 focus:bg-white focus:border-primary outline-none transition-all"
                                                     value={day.endTime || '17:00'}
                                                     onChange={(e) => updateScheduleDay(idx, 'endTime', e.target.value)}
                                                 />
@@ -615,8 +616,11 @@ const Dashboard = () => {
                                         </div>
                                     ))}
                                 </div>
-                                <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end">
-                                    <Button onClick={handleSaveSettings} isLoading={isSaving}>Save All Settings</Button>
+                                <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                                    <div className="text-xs text-slate-400 font-medium bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
+                                        Timezone: <span className="text-slate-700 font-bold">{Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
+                                    </div>
+                                    <Button onClick={handleSaveSettings} isLoading={isSaving} className="w-full sm:w-auto">Save All Settings</Button>
                                 </div>
                             </div>
 

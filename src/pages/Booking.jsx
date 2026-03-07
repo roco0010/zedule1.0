@@ -161,38 +161,56 @@ const Booking = () => {
     };
 
     const generateTimeSlots = () => {
-        if (!selectedService) return [];
+        if (!selectedService || !owner) return [];
 
         const dayOfWeek = selectedDate.getDay();
         const dayAvail = availability.find(a => a.dayOfWeek === dayOfWeek && a.active !== false);
 
         if (!dayAvail) return [];
 
+        // --- TIMEZONE LOGIC ---
+        // 1. Get Owner's offset in minutes (e.g. NYC = -300)
+        const getOwnerOffset = (tz) => {
+            try {
+                const now = new Date();
+                const ownerString = now.toLocaleString('en-US', { timeZone: tz });
+                const localString = now.toLocaleString('en-US', { timeZone: 'UTC' });
+                const diff = (new Date(ownerString) - new Date(localString)) / 60000;
+                return diff;
+            } catch (e) {
+                return -new Date().getTimezoneOffset();
+            }
+        };
+
+        const ownerTz = owner.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const ownerOffset = getOwnerOffset(ownerTz);
+        const customerOffset = -new Date().getTimezoneOffset();
+        const diffMinutes = customerOffset - ownerOffset; // How many minutes to add to owner's time to get customer's time
+        // ----------------------
+
         const slots = [];
         const buffer = owner.bufferTime || 0;
-        let current = set(selectedDate, {
-            hours: parseInt(dayAvail.startTime.split(':')[0]),
-            minutes: parseInt(dayAvail.startTime.split(':')[1]),
-            seconds: 0,
-            milliseconds: 0
-        });
-        const end = set(selectedDate, {
-            hours: parseInt(dayAvail.endTime.split(':')[0]),
-            minutes: parseInt(dayAvail.endTime.split(':')[1]),
-            seconds: 0,
-            milliseconds: 0
-        });
+
+        // Parse owner's local hours
+        const [startH, startM] = dayAvail.startTime.split(':').map(Number);
+        const [endH, endM] = dayAvail.endTime.split(':').map(Number);
+
+        // Create base dates in customer's timezone that EQUAL owner's local hours
+        let current = set(selectedDate, { hours: startH, minutes: startM, seconds: 0, milliseconds: 0 });
+        let end = set(selectedDate, { hours: endH, minutes: endM, seconds: 0, milliseconds: 0 });
+
+        // Shift them by the difference so they match the owner's actual point in time
+        current = addMinutes(current, diffMinutes);
+        end = addMinutes(end, diffMinutes);
 
         while (isBefore(current, end)) {
             const slotStart = new Date(current);
             const slotEnd = addMinutes(slotStart, selectedService.duration || 30);
 
-            // Check if slot overlaps with any existing appointment in Firestore
             const isOccupiedFirestore = existingAppointments.some(app => {
                 return isBefore(slotStart, app.end) && isAfter(slotEnd, app.start);
             });
 
-            // Check if slot overlaps with any Google Calendar busy slot
             const isOccupiedGoogle = googleBusySlots.some(busy => {
                 return isBefore(slotStart, busy.end) && isAfter(slotEnd, busy.start);
             });
@@ -204,7 +222,6 @@ const Booking = () => {
             }
             current = addMinutes(current, (selectedService.duration || 30) + buffer);
         }
-
 
         return slots;
     };
@@ -231,7 +248,7 @@ const Booking = () => {
             // Attempt to sync with Google Calendar if owner has a token
             if (owner?.googleToken) {
                 const { createGoogleCalendarEvent } = await import('../utils/googleCalendar');
-                await createGoogleCalendarEvent(appData, owner.googleToken);
+                await createGoogleCalendarEvent(appData, owner.googleToken, owner.timezone);
             }
 
             setBookingStatus('success');
