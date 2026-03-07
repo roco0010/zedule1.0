@@ -57,7 +57,15 @@ export const createGoogleCalendarEvent = async (appointment, ownerToken, ownerTi
     const startWall = toWallClockString(startDate, tz);
     const endWall = toWallClockString(endDate, tz);
 
-    console.log(`[GCal] Event | tz="${tz}" | start="${startWall}" | end="${endWall}"`);
+    // ── DIAGNOSTIC (open browser console to verify) ──────────────────────────
+    console.group('[GCal] Timezone Diagnostic');
+    console.log('Business Timezone (tz):', tz);
+    console.log('startTime received (raw):', startTime);
+    console.log('startDate as UTC ISO:', startDate.toISOString(), '← this should be the wall-clock time + tz offset (e.g. 14:00Z for 9AM NY EST)');
+    console.log('startWall sent to Google:', startWall, '← this MUST match intended local time (e.g. 09:00:00)');
+    console.log('endWall sent to Google:', endWall);
+    console.groupEnd();
+    // ─────────────────────────────────────────────────────────────────────────
 
     const event = {
         summary: `${service}: ${clientName}`,
