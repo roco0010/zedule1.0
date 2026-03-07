@@ -369,7 +369,7 @@ const Booking = () => {
                                 {/* Date Picker */}
                                 <div className="flex-grow">
                                     <h3 className="font-bold text-slate-900 mb-6">Select Date</h3>
-                                    <div className="grid grid-cols-7 gap-2">
+                                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
                                         {[...Array(14)].map((_, i) => {
                                             const d = addDays(new Date(), i + 1);
                                             const isSelected = format(d, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');

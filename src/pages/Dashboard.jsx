@@ -474,7 +474,7 @@ const Dashboard = () => {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-grow flex flex-col min-w-0 h-screen overflow-y-auto">
+            <main className="flex-grow flex flex-col min-w-0 h-screen overflow-y-auto pb-24 md:pb-0 relative">
                 <header className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between sticky top-0 z-40 bg-white/80 backdrop-blur-md">
                     <div>
                         <h1 className="text-xl font-extrabold text-slate-900">
@@ -855,6 +855,22 @@ const Dashboard = () => {
                             </div>
                         </div>
                     )}
+                </div>
+
+                {/* Mobile Bottom Navigation */}
+                <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex items-center justify-around p-3 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+                    <button onClick={() => setActiveTab('calendar')} className={`flex flex-col items-center gap-1 p-2 transition-colors ${activeTab === 'calendar' ? 'text-primary' : 'text-slate-400'}`}>
+                        <CalendarIcon size={24} />
+                        <span className="text-[10px] font-bold">Calendar</span>
+                    </button>
+                    <button onClick={() => setActiveTab('clients')} className={`flex flex-col items-center gap-1 p-2 transition-colors ${activeTab === 'clients' ? 'text-primary' : 'text-slate-400'}`}>
+                        <Users size={24} />
+                        <span className="text-[10px] font-bold">Clients</span>
+                    </button>
+                    <button onClick={() => setActiveTab('availability')} className={`flex flex-col items-center gap-1 p-2 transition-colors ${activeTab === 'availability' ? 'text-primary' : 'text-slate-400'}`}>
+                        <Settings size={24} />
+                        <span className="text-[10px] font-bold">Settings</span>
+                    </button>
                 </div>
             </main>
         </div>
