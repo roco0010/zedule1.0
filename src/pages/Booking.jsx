@@ -253,7 +253,7 @@ const Booking = () => {
 
         } catch (err) {
             console.error("Booking Error:", err);
-            alert("Failed to book appointment.");
+            alert("Failed to book appointment: " + (err.message || "Unknown error"));
             setBookingStatus('idle');
         }
     };

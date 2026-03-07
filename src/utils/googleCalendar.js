@@ -125,12 +125,15 @@ export const createGoogleCalendarEvent = async (appointment, ownerToken, ownerTi
     }
 };
 
+// Circuit breaker to prevent spamming the console with 403s if FreeBusy permissions fail
+let freeBusyFailed = false;
+
 /**
  * Fetch busy time slots from Google Calendar (FreeBusy API).
  * Returns UTC-based Date objects which are timezone-agnostic for overlap detection.
  */
 export const getGoogleBusySlots = async (ownerToken, timeMin, timeMax) => {
-    if (!ownerToken) return [];
+    if (!ownerToken || freeBusyFailed) return [];
 
     try {
         const response = await fetch('https://www.googleapis.com/calendar/v3/freeBusy', {
@@ -147,6 +150,7 @@ export const getGoogleBusySlots = async (ownerToken, timeMin, timeMax) => {
         });
 
         if (!response.ok) {
+            freeBusyFailed = true;
             console.warn('[GCal] FreeBusy failed, proceeding anyway');
             return [];
         }
@@ -157,6 +161,7 @@ export const getGoogleBusySlots = async (ownerToken, timeMin, timeMax) => {
             end: new Date(slot.end)
         }));
     } catch (err) {
+        freeBusyFailed = true;
         console.warn('[GCal] FreeBusy failed, proceeding anyway');
         return [];
     }
