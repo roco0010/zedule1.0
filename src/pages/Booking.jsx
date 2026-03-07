@@ -538,7 +538,7 @@ const Booking = () => {
 
             <p className="text-center mt-12 text-slate-400 text-xs flex flex-col items-center gap-1">
                 <span>Zedule v3.1 • Easy Scheduling for Experts</span>
-                <span>Developed by <a href="https://www.startandgoarva.com" target="_blank" rel="noopener noreferrer" className="font-bold hover:text-primary transition-colors">Start&Go RVA</a></span>
+                <span>Developed by <a href="https://www.startandgorva.com" target="_blank" rel="noopener noreferrer" className="font-bold hover:text-primary transition-colors">Start&Go RVA</a></span>
             </p>
         </div>
     );

@@ -24,7 +24,7 @@ const Footer = () => {
         <footer className="bg-white border-t border-slate-200 py-8 px-6 mt-auto">
             <div className="container mx-auto flex flex-col items-center justify-between gap-4 md:flex-row">
                 <div className="flex flex-col md:flex-row items-center gap-2 text-sm text-slate-500">
-                    Developed by <a href="https://www.startandgoarva.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">Start&Go RVA</a> — <span className="font-semibold text-slate-400 italic">v3.1</span>
+                    Developed by <a href="https://www.startandgorva.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">Start&Go RVA</a> — <span className="font-semibold text-slate-400 italic">v3.1</span>
                 </div>
                 <div className="flex gap-6 text-sm font-medium text-slate-600">
                     <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
