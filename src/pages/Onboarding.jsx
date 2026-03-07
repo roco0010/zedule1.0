@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { getAIResponse, saveUserOnboarding } from '../utils/api';
+
 import { Send, Bot, User, Sparkles, CheckCircle } from 'lucide-react';
 import Button from '../components/Button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -23,6 +25,16 @@ const Onboarding = () => {
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                navigate('/login');
+            }
+        });
+        return () => unsubscribe();
+    }, [navigate]);
+
 
     const handleSend = async (e) => {
         e.preventDefault();

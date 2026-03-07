@@ -62,7 +62,12 @@ const Login = () => {
                 });
             }
 
-            navigate('/dashboard');
+            if (userSnap.data()?.isOnboarded === false) {
+                navigate('/onboarding');
+            } else {
+                navigate('/dashboard');
+            }
+
 
         } catch (err) {
             setError('Google sign-in failed.');
